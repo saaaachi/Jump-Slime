@@ -142,14 +142,24 @@
             location.reload();
         }
 
-        // 20.1秒リフレッシュ
+        // 20.1秒ごとに広告を「箱ごと」新しくして確実に再読み込みさせる
         setInterval(() => {
-            ["ad-box-1", "ad-box-2"].forEach(id => {
-                const box = document.getElementById(id);
-                if (box && box.innerHTML.trim() !== "★") {
-                    const tag = box.innerHTML;
-                    box.innerHTML = "";
-                    setTimeout(() => { box.innerHTML = tag; }, 100);
+            ["ad-top", "ad-bottom"].forEach((id, index) => {
+                const parent = document.getElementById(id);
+                const boxId = `ad-box-${index + 1}`;
+                const oldBox = document.getElementById(boxId);
+                
+                if (oldBox && oldBox.innerHTML.trim() !== "★") {
+                    const tag = oldBox.innerHTML;
+                    
+                    // 一度中身を完全に消す
+                    oldBox.innerHTML = "";
+                    
+                    // 0.5秒だけ待ってから、新しい要素としてタグを入れ直す
+                    setTimeout(() => {
+                        oldBox.innerHTML = tag;
+                        // もし広告タグに script が含まれる場合、これだけで再実行されます
+                    }, 500); 
                 }
             });
         }, 20100);
