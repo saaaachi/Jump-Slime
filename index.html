@@ -3,22 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Jump Slime 10</title>
+    <title>Jump Slime Fixed</title>
     <style>
         body { margin: 0; overflow: hidden; background: #e8f5e9; font-family: sans-serif; touch-action: none; }
-        
-        /* 広告エリア：上下110px固定 */
         #ad-top { position: fixed; top: 0; left: 0; width: 100%; height: 110px; background: #333; z-index: 100; display: flex; align-items: center; justify-content: center; }
         #ad-bottom { position: fixed; bottom: 0; left: 0; width: 100%; height: 110px; background: #333; z-index: 100; display: flex; align-items: center; justify-content: center; }
-        
         canvas { display: block; margin-top: 110px; background: #c8e6c9; }
-        
         #ui { position: absolute; top: 120px; left: 0; width: 100%; text-align: center; color: #2e7d32; font-size: 24px; font-weight: bold; pointer-events: none; }
-        
-        #startScreen {
-            position: absolute; top: 110px; left: 0; width: 100%; height: calc(100vh - 220px);
-            background: rgba(255,255,255,0.8); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 50;
-        }
+        #startScreen { position: absolute; top: 110px; left: 0; width: 100%; height: calc(100vh - 220px); background: rgba(255,255,255,0.9); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 50; }
         #goButton { padding: 15px 40px; font-size: 24px; background: #4caf50; border: none; border-radius: 50px; color: white; font-weight: bold; cursor: pointer; }
     </style>
 </head>
@@ -32,10 +24,9 @@
 <!-- admax --></div></div>
 
     <div id="startScreen">
-        <h1 style="color:#2e7d32; margin-bottom:10px;">JUMP SLIME</h1>
-        <p>タイミングよくタップしてジャンプ！</p>
+        <h1 style="color:#2e7d32;">JUMP SLIME</h1>
         <button id="goButton">START</button>
-        <p style="margin-top:15px;">BEST: <span id="best-ui">0</span></p>
+        <p>BEST: <span id="best-ui">0</span></p>
     </div>
 
     <div id="ui">SCORE: 0</div>
@@ -54,112 +45,98 @@
         let score = 0;
         let bestScore = localStorage.getItem("jump_slime_best") || 0;
         let gameActive = false;
-        
-        let slime = { x: 50, y: canvas.height - 40, vy: 0, jumpPower: -15, gravity: 0.8, size: 20 };
+        let slime = { x: 80, y: 0, vy: 0, size: 20, jump: -14, gravity: 0.7 };
         let platforms = [];
         bestUi.innerText = bestScore;
+
+        function createPlatform(x) {
+            return {
+                x: x,
+                y: canvas.height - 30 - Math.random() * 60,
+                w: 100 + Math.random() * 50
+            };
+        }
 
         document.getElementById("goButton").onclick = () => {
             startScreen.style.display = "none";
             gameActive = true;
             score = 0;
-            slime.y = canvas.height - 40;
+            platforms = [ {x: 50, y: canvas.height - 40, w: 150} ];
+            // 最初から数個分作っておく
+            for(let i=1; i<5; i++) platforms.push(createPlatform(i * 250));
+            slime.y = platforms[0].y - slime.size;
             slime.vy = 0;
-            platforms = [{ x: 30, y: canvas.height - 20, w: 100 }];
-            spawnPlatform();
             update();
         };
 
         window.addEventListener("pointerdown", () => {
-            if(gameActive && slime.vy === 0) { // 地面にいる時だけジャンプ
-                slime.vy = slime.jumpPower;
-            }
+            if(gameActive && slime.vy === 0) slime.vy = slime.jump;
         });
-
-        function spawnPlatform() {
-            if(!gameActive) return;
-            let lastP = platforms[platforms.length - 1];
-            platforms.push({
-                x: lastP.x + 150 + Math.random() * 100,
-                y: canvas.height - 20 - Math.random() * 50,
-                w: 80 + Math.random() * 50
-            });
-            if(platforms.length > 5) platforms.shift();
-            setTimeout(spawnPlatform, 2000);
-        }
 
         function update() {
             if(!gameActive) return;
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            // 重力
             slime.vy += slime.gravity;
             slime.y += slime.vy;
 
-            // 足場との判定
             let onGround = false;
-            platforms.forEach(p => {
-                p.x -= 3 + (score / 10); // スコアが上がると足場が速くなる
-                ctx.fillStyle = "#8d6e63";
-                ctx.fillRect(p.x, p.y, p.w, 20);
+            let moveSpeed = 4 + (score / 20);
 
-                if(slime.y + slime.size > p.y && slime.y + slime.size < p.y + 25 &&
-                   slime.x + slime.size > p.x && slime.x - slime.size < p.x + p.w &&
-                   slime.vy > 0) {
+            for (let i = platforms.length - 1; i >= 0; i--) {
+                let p = platforms[i];
+                p.x -= moveSpeed; // 全体の足を速くする
+
+                ctx.fillStyle = "#8d6e63";
+                ctx.fillRect(p.x, p.y, p.w, 30);
+
+                // 着地判定
+                if (slime.vy > 0 && 
+                    slime.x + 10 > p.x && slime.x - 10 < p.x + p.w &&
+                    slime.y + slime.size > p.y && slime.y + slime.size < p.y + 30) {
                     slime.y = p.y - slime.size;
                     slime.vy = 0;
                     onGround = true;
                 }
-            });
 
-            // スライム描画
+                // 画面外に出た足場を消して新しく追加
+                if (p.x + p.w < 0) {
+                    platforms.splice(i, 1);
+                    let lastP = platforms[platforms.length - 1];
+                    platforms.push(createPlatform(lastP.x + 220 + Math.random() * 80));
+                    score++;
+                    ui.innerText = "SCORE: " + score;
+                }
+            }
+
+            // スライム
             ctx.fillStyle = "#4caf50";
             ctx.beginPath();
             ctx.arc(slime.x, slime.y, slime.size, 0, Math.PI * 2);
             ctx.fill();
 
-            // 落下判定
-            if(slime.y > canvas.height) {
-                gameOver();
-                return;
-            }
-
-            // スコア（生き残っている距離）
-            score += 0.05;
-            ui.innerText = "SCORE: " + Math.floor(score);
-
-            requestAnimationFrame(update);
+            if (slime.y > canvas.height) gameOver();
+            else requestAnimationFrame(update);
         }
 
         function gameOver() {
             gameActive = false;
-            let finalScore = Math.floor(score);
-            if(finalScore > bestScore) {
-                bestScore = finalScore;
+            if(score > bestScore) {
+                bestScore = score;
                 localStorage.setItem("jump_slime_best", bestScore);
             }
-            alert("GAME OVER!\nSCORE: " + finalScore);
+            alert("GAME OVER! SCORE: " + score);
             location.reload();
         }
 
-        // 20.1秒ごとに広告を「箱ごと」新しくして確実に再読み込みさせる
+        // 広告更新（シンプル版に戻す）
         setInterval(() => {
-            ["ad-top", "ad-bottom"].forEach((id, index) => {
-                const parent = document.getElementById(id);
-                const boxId = `ad-box-${index + 1}`;
-                const oldBox = document.getElementById(boxId);
-                
-                if (oldBox && oldBox.innerHTML.trim() !== "★") {
-                    const tag = oldBox.innerHTML;
-                    
-                    // 一度中身を完全に消す
-                    oldBox.innerHTML = "";
-                    
-                    // 0.5秒だけ待ってから、新しい要素としてタグを入れ直す
-                    setTimeout(() => {
-                        oldBox.innerHTML = tag;
-                        // もし広告タグに script が含まれる場合、これだけで再実行されます
-                    }, 500); 
+            ["ad-box-1", "ad-box-2"].forEach(id => {
+                const box = document.getElementById(id);
+                if (box && box.innerHTML.includes("<script")) {
+                    const tag = box.innerHTML;
+                    box.innerHTML = "";
+                    setTimeout(() => { box.innerHTML = tag; }, 100);
                 }
             });
         }, 20100);
