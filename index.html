@@ -16,12 +16,26 @@
 </head>
 <body>
 
-    <div id="ad-top"><div id="ad-box-1"><!-- admax -->
-<script src="https://adm.shinobi.jp/s/c7ced7f77151017f32f16a375f73e1cd"></script>
-<!-- admax --></div></div>
-    <div id="ad-bottom"><div id="ad-box-2"><!-- admax -->
-<script src="https://adm.shinobi.jp/s/c7ced7f77151017f32f16a375f73e1cd"></script>
-<!-- admax --></div></div>
+    <div id="ad-top"><div id="ad-box-1"><!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Jump Slime Fixed</title>
+    <style>
+        body { margin: 0; overflow: hidden; background: #e8f5e9; font-family: sans-serif; touch-action: none; }
+        #ad-top { position: fixed; top: 0; left: 0; width: 100%; height: 110px; background: #333; z-index: 100; display: flex; align-items: center; justify-content: center; }
+        #ad-bottom { position: fixed; bottom: 0; left: 0; width: 100%; height: 110px; background: #333; z-index: 100; display: flex; align-items: center; justify-content: center; }
+        canvas { display: block; margin-top: 110px; background: #c8e6c9; }
+        #ui { position: absolute; top: 120px; left: 0; width: 100%; text-align: center; color: #2e7d32; font-size: 24px; font-weight: bold; pointer-events: none; }
+        #startScreen { position: absolute; top: 110px; left: 0; width: 100%; height: calc(100vh - 220px); background: rgba(255,255,255,0.9); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 50; }
+        #goButton { padding: 15px 40px; font-size: 24px; background: #4caf50; border: none; border-radius: 50px; color: white; font-weight: bold; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+    <div id="ad-top"><div id="ad-box-1">★</div></div>
+    <div id="ad-bottom"><div id="ad-box-2">★</div></div>
 
     <div id="startScreen">
         <h1 style="color:#2e7d32;">JUMP SLIME</h1>
@@ -139,7 +153,258 @@
                     setTimeout(() => { box.innerHTML = tag; }, 100);
                 }
             });
-        }, 30100);
+        }, 20100);
     </script>
-</body>in in
+</body>
+</html></div></div>
+    <div id="ad-bottom"><div id="ad-box-2"><!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Jump Slime Fixed</title>
+    <style>
+        body { margin: 0; overflow: hidden; background: #e8f5e9; font-family: sans-serif; touch-action: none; }
+        #ad-top { position: fixed; top: 0; left: 0; width: 100%; height: 110px; background: #333; z-index: 100; display: flex; align-items: center; justify-content: center; }
+        #ad-bottom { position: fixed; bottom: 0; left: 0; width: 100%; height: 110px; background: #333; z-index: 100; display: flex; align-items: center; justify-content: center; }
+        canvas { display: block; margin-top: 110px; background: #c8e6c9; }
+        #ui { position: absolute; top: 120px; left: 0; width: 100%; text-align: center; color: #2e7d32; font-size: 24px; font-weight: bold; pointer-events: none; }
+        #startScreen { position: absolute; top: 110px; left: 0; width: 100%; height: calc(100vh - 220px); background: rgba(255,255,255,0.9); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 50; }
+        #goButton { padding: 15px 40px; font-size: 24px; background: #4caf50; border: none; border-radius: 50px; color: white; font-weight: bold; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+    <div id="ad-top"><div id="ad-box-1">★</div></div>
+    <div id="ad-bottom"><div id="ad-box-2">★</div></div>
+
+    <div id="startScreen">
+        <h1 style="color:#2e7d32;">JUMP SLIME</h1>
+        <button id="goButton">START</button>
+        <p>BEST: <span id="best-ui">0</span></p>
+    </div>
+
+    <div id="ui">SCORE: 0</div>
+    <canvas id="gameCanvas"></canvas>
+
+    <script>
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+        const ui = document.getElementById("ui");
+        const startScreen = document.getElementById("startScreen");
+        const bestUi = document.getElementById("best-ui");
+
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight - 220;
+
+        let score = 0;
+        let bestScore = localStorage.getItem("jump_slime_best") || 0;
+        let gameActive = false;
+        let slime = { x: 80, y: 0, vy: 0, size: 20, jump: -14, gravity: 0.7 };
+        let platforms = [];
+        bestUi.innerText = bestScore;
+
+        function createPlatform(x) {
+            return {
+                x: x,
+                y: canvas.height - 30 - Math.random() * 60,
+                w: 100 + Math.random() * 50
+            };
+        }
+
+        document.getElementById("goButton").onclick = () => {
+            startScreen.style.display = "none";
+            gameActive = true;
+            score = 0;
+            platforms = [ {x: 50, y: canvas.height - 40, w: 150} ];
+            // 最初から数個分作っておく
+            for(let i=1; i<5; i++) platforms.push(createPlatform(i * 250));
+            slime.y = platforms[0].y - slime.size;
+            slime.vy = 0;
+            update();
+        };
+
+        window.addEventListener("pointerdown", () => {
+            if(gameActive && slime.vy === 0) slime.vy = slime.jump;
+        });
+
+        function update() {
+            if(!gameActive) return;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            slime.vy += slime.gravity;
+            slime.y += slime.vy;
+
+            let onGround = false;
+            let moveSpeed = 4 + (score / 20);
+
+            for (let i = platforms.length - 1; i >= 0; i--) {
+                let p = platforms[i];
+                p.x -= moveSpeed; // 全体の足を速くする
+
+                ctx.fillStyle = "#8d6e63";
+                ctx.fillRect(p.x, p.y, p.w, 30);
+
+                // 着地判定
+                if (slime.vy > 0 && 
+                    slime.x + 10 > p.x && slime.x - 10 < p.x + p.w &&
+                    slime.y + slime.size > p.y && slime.y + slime.size < p.y + 30) {
+                    slime.y = p.y - slime.size;
+                    slime.vy = 0;
+                    onGround = true;
+                }
+
+                // 画面外に出た足場を消して新しく追加
+                if (p.x + p.w < 0) {
+                    platforms.splice(i, 1);
+                    let lastP = platforms[platforms.length - 1];
+                    platforms.push(createPlatform(lastP.x + 220 + Math.random() * 80));
+                    score++;
+                    ui.innerText = "SCORE: " + score;
+                }
+            }
+
+            // スライム
+            ctx.fillStyle = "#4caf50";
+            ctx.beginPath();
+            ctx.arc(slime.x, slime.y, slime.size, 0, Math.PI * 2);
+            ctx.fill();
+
+            if (slime.y > canvas.height) gameOver();
+            else requestAnimationFrame(update);
+        }
+
+        function gameOver() {
+            gameActive = false;
+            if(score > bestScore) {
+                bestScore = score;
+                localStorage.setItem("jump_slime_best", bestScore);
+            }
+            alert("GAME OVER! SCORE: " + score);
+            location.reload();
+        }
+
+        // 広告更新（シンプル版に戻す）
+        setInterval(() => {
+            ["ad-box-1", "ad-box-2"].forEach(id => {
+                const box = document.getElementById(id);
+                if (box && box.innerHTML.includes("<script")) {
+                    const tag = box.innerHTML;
+                    box.innerHTML = "";
+                    setTimeout(() => { box.innerHTML = tag; }, 100);
+                }
+            });
+        }, 20100);
+    </script>
+</body>
+</html></div></div>
+
+    <div id="startScreen">
+        <h1 style="color:#2e7d32;">JUMP SLIME</h1>
+        <button id="goButton">START</button>
+        <p>BEST: <span id="best-ui">0</span></p>
+    </div>
+
+    <div id="ui">SCORE: 0</div>
+    <canvas id="gameCanvas"></canvas>
+
+    <script>
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+        const ui = document.getElementById("ui");
+        const startScreen = document.getElementById("startScreen");
+        const bestUi = document.getElementById("best-ui");
+
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight - 220;
+
+        let score = 0;
+        let bestScore = localStorage.getItem("jump_slime_best") || 0;
+        let gameActive = false;
+        let slime = { x: 80, y: 0, vy: 0, size: 20, jump: -14, gravity: 0.7 };
+        let platforms = [];
+        bestUi.innerText = bestScore;
+
+        function createPlatform(x) {
+            return {
+                x: x,
+                y: canvas.height - 30 - Math.random() * 60,
+                w: 100 + Math.random() * 50
+            };
+        }
+
+        document.getElementById("goButton").onclick = () => {
+            startScreen.style.display = "none";
+            gameActive = true;
+            score = 0;
+            platforms = [ {x: 50, y: canvas.height - 40, w: 150} ];
+            // 最初から数個分作っておく
+            for(let i=1; i<5; i++) platforms.push(createPlatform(i * 250));
+            slime.y = platforms[0].y - slime.size;
+            slime.vy = 0;
+            update();
+        };
+
+        window.addEventListener("pointerdown", () => {
+            if(gameActive && slime.vy === 0) slime.vy = slime.jump;
+        });
+
+        function update() {
+            if(!gameActive) return;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            slime.vy += slime.gravity;
+            slime.y += slime.vy;
+
+            let onGround = false;
+            let moveSpeed = 4 + (score / 20);
+
+            for (let i = platforms.length - 1; i >= 0; i--) {
+                let p = platforms[i];
+                p.x -= moveSpeed; // 全体の足を速くする
+
+                ctx.fillStyle = "#8d6e63";
+                ctx.fillRect(p.x, p.y, p.w, 30);
+
+                // 着地判定
+                if (slime.vy > 0 && 
+                    slime.x + 10 > p.x && slime.x - 10 < p.x + p.w &&
+                    slime.y + slime.size > p.y && slime.y + slime.size < p.y + 30) {
+                    slime.y = p.y - slime.size;
+                    slime.vy = 0;
+                    onGround = true;
+                }
+
+                // 画面外に出た足場を消して新しく追加
+                if (p.x + p.w < 0) {
+                    platforms.splice(i, 1);
+                    let lastP = platforms[platforms.length - 1];
+                    platforms.push(createPlatform(lastP.x + 220 + Math.random() * 80));
+                    score++;
+                    ui.innerText = "SCORE: " + score;
+                }
+            }
+
+            // スライム
+            ctx.fillStyle = "#4caf50";
+            ctx.beginPath();
+            ctx.arc(slime.x, slime.y, slime.size, 0, Math.PI * 2);
+            ctx.fill();
+
+            if (slime.y > canvas.height) gameOver();
+            else requestAnimationFrame(update);
+        }
+
+        function gameOver() {
+            gameActive = false;
+            if(score > bestScore) {
+                bestScore = score;
+                localStorage.setItem("jump_slime_best", bestScore);
+            }
+            alert("GAME OVER! SCORE: " + score);
+            location.reload();
+        }
+
+    </script>
+</body>
 </html>
