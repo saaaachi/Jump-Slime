@@ -5,66 +5,121 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Jump Slime Pro</title>
     <style>
-        body { margin: 0; overflow: hidden; background: #e8f5e9; font-family: sans-serif; touch-action: none; }
-        /* 広告エリア：窓(iframe)を表示する場所 */
-        #ad-top, #ad-bottom { position: fixed; left: 0; width: 100%; height: 110px; background: #333; z-index: 100; display: flex; align-items: center; justify-content: center; overflow: hidden; }
-        #ad-top { top: 0; }
-        #ad-bottom { bottom: 0; }
-        iframe { border: none; width: 100%; height: 110px; }
+        /* 画面を上・中・下に完全分離 */
+        body { 
+            margin: 0; height: 100vh; display: flex; flex-direction: column; 
+            background: #e8f5e9; font-family: sans-serif; overflow: hidden; touch-action: none; 
+        }
         
-        canvas { display: block; margin-top: 110px; background: #c8e6c9; }
-        #ui { position: absolute; top: 120px; left: 0; width: 100%; text-align: center; color: #2e7d32; font-size: 24px; font-weight: bold; pointer-events: none; }
-        #startScreen { position: absolute; top: 110px; left: 0; width: 100%; height: calc(100vh - 220px); background: rgba(255,255,255,0.9); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 50; }
-        #goButton { padding: 15px 40px; font-size: 24px; background: #4caf50; border: none; border-radius: 50px; color: white; font-weight: bold; cursor: pointer; }
+        /* 上下の広告枠 */
+        #ad-top, #ad-bottom { 
+            width: 100%; height: 110px; background: #333; 
+            display: flex; align-items: center; justify-content: center; flex-shrink: 0; z-index: 100;
+        }
+        iframe { border: none; width: 100%; height: 100%; }
+
+        /* ゲームエリア */
+        #game-area { 
+            flex-grow: 1; position: relative; width: 100%; background: #c8e6c9; overflow: hidden; 
+        }
+        
+        canvas { display: block; width: 100%; height: 100%; }
+        #ui { position: absolute; top: 10px; width: 100%; text-align: center; color: #2e7d32; font-size: 24px; font-weight: bold; pointer-events: none; z-index: 10; }
+        
+        /* メニュー（ゲームオーバー）画面 */
+        #menuScreen { 
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
+            background: rgba(255,255,255,0.95); display: flex; flex-direction: column; 
+            align-items: center; justify-content: flex-start; z-index: 200; padding: 15px 0; box-sizing: border-box;
+        }
+
+        /* 中央広告の檻（被り防止マージン付き） */
+        #ad-middle-container { 
+            width: 300px; height: 250px; background: #ddd;
+            display: none; justify-content: center; align-items: center; 
+            overflow: hidden; position: relative; flex-shrink: 0;
+            margin-bottom: 40px; /* ボタンとの隙間を確保 */
+            border: 1px solid #ccc;
+        }
+        
+        .btn-group { 
+            display: flex; flex-direction: column; align-items: center; gap: 10px; 
+            flex-shrink: 0; width: 100%; margin-top: auto; padding-bottom: 20px;
+        }
+        .menu-btn { padding: 14px 30px; font-size: 18px; border: none; border-radius: 50px; color: white; font-weight: bold; cursor: pointer; text-decoration: none; width: 240px; text-align: center; }
+        #goButton { background: #4caf50; box-shadow: 0 4px #2e7d32; }
+        .link-btn { background: #ff4081; box-shadow: 0 4px #c2185b; }
+        .best-info { color: #2e7d32; font-size: 18px; font-weight: bold; margin: 5px 0; }
     </style>
 </head>
 <body>
+    <div id="ad-top"><iframe src="ad.html"></iframe></div>
 
-    <div id="ad-top"><iframe id="frame-top" src="ad.html"></iframe></div>
-    <div id="ad-bottom"><iframe id="frame-bottom" src="ad.html"></iframe></div>
+    <div id="game-area">
+        <div id="ui">SCORE: 0</div>
+        
+        <div id="menuScreen">
+            <div style="text-align:center;">
+                <h1 id="menuTitle" style="color:#2e7d32; margin:0; font-size: 26px;">JUMP SLIME PRO</h1>
+                <p id="menuMsg" style="margin:5px 0;">足場を飛び移れ！</p>
+                <div class="best-info">BEST SCORE: <span id="best-ui">0</span></div>
+            </div>
 
-    <div id="startScreen">
-        <h1 style="color:#2e7d32;">JUMP SLIME PRO</h1>
-        <button id="goButton">START</button>
-        <p>BEST: <span id="best-ui">0</span></p>
+            <div id="ad-middle-container">
+                <script src="https://adm.shinobi.jp/s/1e6de436ea850948e238e975a93767eb"></script>
+            </div>
+
+            <div class="btn-group" id="btnGroup">
+                <button id="goButton" class="menu-btn">START</button>
+                <a href="https://saaaachi.github.io/Namber-Order/" class="menu-btn link-btn">他のゲームはこちら</a>
+            </div>
+        </div>
+        <canvas id="gameCanvas"></canvas>
     </div>
 
-    <div id="ui">SCORE: 0</div>
-    <canvas id="gameCanvas"></canvas>
+    <div id="ad-bottom"><iframe src="ad.html"></iframe></div>
 
     <script>
-        const canvas = document.getElementById("gameCanvas");
-        const ctx = canvas.getContext("2d");
-        const ui = document.getElementById("ui");
-        const startScreen = document.getElementById("startScreen");
-        const bestUi = document.getElementById("best-ui");
+        const canvas = document.getElementById("gameCanvas"),
+              ctx = canvas.getContext("2d"),
+              ui = document.getElementById("ui"),
+              menuScreen = document.getElementById("menuScreen"),
+              menuTitle = document.getElementById("menuTitle"),
+              menuMsg = document.getElementById("menuMsg"),
+              bestUi = document.getElementById("best-ui"),
+              goButton = document.getElementById("goButton"),
+              adMid = document.getElementById("ad-middle-container"),
+              btnGroup = document.getElementById("btnGroup");
 
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight - 220;
-
-        let score = 0;
-        let bestScore = localStorage.getItem("jump_slime_best") || 0;
-        let gameActive = false;
+        let score = 0, bestScore = localStorage.getItem("jump_slime_best") || 0, gameActive = false;
         let slime = { x: 80, y: 0, vy: 0, size: 20, jump: -14, gravity: 0.7 };
         let platforms = [];
-        bestUi.innerText = bestScore;
+
+        function resize() {
+            canvas.width = canvas.offsetWidth;
+            canvas.height = canvas.offsetHeight;
+        }
+        window.onload = () => { resize(); bestUi.innerText = bestScore; adMid.style.display = "none"; };
+        window.onresize = resize;
 
         function createPlatform(x) {
-            return { x: x, y: canvas.height - 30 - Math.random() * 60, w: 100 + Math.random() * 50 };
+            return { x: x, y: canvas.height - 50 - Math.random() * 100, w: 100 + Math.random() * 50 };
         }
 
-        document.getElementById("goButton").onclick = () => {
-            startScreen.style.display = "none";
+        goButton.onclick = () => {
+            menuScreen.style.display = "none";
+            adMid.style.display = "none";
             gameActive = true;
             score = 0;
-            platforms = [ {x: 50, y: canvas.height - 40, w: 150} ];
+            ui.innerText = "SCORE: 0";
+            platforms = [ {x: 50, y: canvas.height - 60, w: 150} ];
             for(let i=1; i<5; i++) platforms.push(createPlatform(i * 250));
             slime.y = platforms[0].y - slime.size;
             slime.vy = 0;
             update();
         };
 
-        window.addEventListener("pointerdown", () => {
+        window.addEventListener("pointerdown", (e) => {
             if(gameActive && slime.vy === 0) slime.vy = slime.jump;
         });
 
@@ -80,10 +135,14 @@
                 p.x -= moveSpeed;
                 ctx.fillStyle = "#8d6e63";
                 ctx.fillRect(p.x, p.y, p.w, 30);
-                if (slime.vy > 0 && slime.x + 10 > p.x && slime.x - 10 < p.x + p.w && slime.y + slime.size > p.y && slime.y + slime.size < p.y + 30) {
+                
+                // 着地判定
+                if (slime.vy > 0 && slime.x + 10 > p.x && slime.x - 10 < p.x + p.w && slime.y + slime.size > p.y && slime.y + slime.size < p.y + 20) {
                     slime.y = p.y - slime.size;
                     slime.vy = 0;
                 }
+                
+                // 画面外に出たら新しい足場
                 if (p.x + p.w < 0) {
                     platforms.splice(i, 1);
                     let lastP = platforms[platforms.length - 1];
@@ -92,10 +151,15 @@
                     ui.innerText = "SCORE: " + score;
                 }
             }
+
             ctx.fillStyle = "#4caf50";
             ctx.beginPath(); ctx.arc(slime.x, slime.y, slime.size, 0, Math.PI * 2); ctx.fill();
-            if (slime.y > canvas.height) gameOver();
-            else requestAnimationFrame(update);
+
+            if (slime.y > canvas.height) {
+                gameOver();
+            } else {
+                requestAnimationFrame(update);
+            }
         }
 
         function gameOver() {
@@ -103,23 +167,29 @@
             if(score > bestScore) {
                 bestScore = score;
                 localStorage.setItem("jump_slime_best", bestScore);
+                bestUi.innerText = bestScore;
             }
-            alert("GAME OVER! SCORE: " + score);
-            location.reload();
+            menuTitle.innerText = "GAME OVER";
+            menuTitle.style.color = "#f44336";
+            menuMsg.innerText = "SCORE: " + score;
+            goButton.innerText = "RETRY";
+            
+            btnGroup.style.opacity = "0";
+            btnGroup.style.pointerEvents = "none";
+            adMid.style.display = "flex"; 
+            menuScreen.style.display = "flex";
+
+            setTimeout(() => {
+                btnGroup.style.opacity = "1";
+                btnGroup.style.pointerEvents = "auto";
+            }, 600);
         }
 
-        // 🔥【重要】20.1秒ごとに「窓の中身だけ」を強制リフレッシュ
         setInterval(() => {
-            ["frame-top", "frame-bottom"].forEach(id => {
-                const frame = document.getElementById(id);
-                if (frame) {
-                    // srcを一度空にしてから戻すと、iframeの中だけが再読み込みされる
-                    const currentSrc = frame.src;
-                    frame.src = "about:blank";
-                    setTimeout(() => { frame.src = currentSrc; }, 100);
-                }
+            document.querySelectorAll('iframe').forEach(f => {
+                const s = f.src; f.src = "about:blank"; setTimeout(() => f.src = s, 100);
             });
-        }, 20100);
+        }, 30000);
     </script>
 </body>
 </html>
